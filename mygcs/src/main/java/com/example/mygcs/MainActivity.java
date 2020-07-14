@@ -131,7 +131,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 // Do nothing
             }
         });
-
         /*=========================================================================================
         final Button takePic = (Button) findViewById(R.id.take_photo_button);
         takePic.setOnClickListener(new View.OnClickListener() {
@@ -816,5 +815,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 alertUser("Connection Failed:" + msg);
                 break;
         }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,  @NonNull int[] grantResults) {
+        if (locationSource.onRequestPermissionsResult(
+                requestCode, permissions, grantResults)) {
+            if (!locationSource.isActivated()) { // 권한 거부됨
+                naverMap.setLocationTrackingMode(LocationTrackingMode.None);
+            }
+            return;
+        }
+        super.onRequestPermissionsResult(
+                requestCode, permissions, grantResults);
     }
 }
