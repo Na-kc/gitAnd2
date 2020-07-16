@@ -22,10 +22,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.naver.maps.geometry.LatLng;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.OnMapReadyCallback;
+import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
 import com.o3dr.android.client.ControlTower;
 import com.o3dr.android.client.Drone;
@@ -47,6 +49,7 @@ import com.o3dr.services.android.lib.drone.companion.solo.SoloState;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
 import com.o3dr.services.android.lib.drone.connection.ConnectionType;
 import com.o3dr.services.android.lib.drone.property.Altitude;
+import com.o3dr.services.android.lib.drone.property.Attitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
 import com.o3dr.services.android.lib.drone.property.Gps;
 import com.o3dr.services.android.lib.drone.property.Home;
@@ -59,6 +62,7 @@ import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.o3dr.android.client.apis.ExperimentalApi.getApi;
@@ -93,6 +97,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String videoTag = "testvideotag";
 
     Handler mainHandler;
+
+    PolylineOverlay polyline = new PolylineOverlay();
+    ArrayList<LatLng> droneMovePath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -356,6 +363,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updateSpeed();
                 break;
 
+            case AttributeEvent.ATTITUDE_UPDATED:
+                updateYAW();
+                break;
+
+            case AttributeEvent.GPS_COUNT:
+                updateSatellite();
+                break;
+
+            case AttributeEvent.GPS_POSITION:
+                updateMap();
+                break;
+
             /*case AttributeEvent.HOME_UPDATED:
                 updateDistanceFromHome();
                 break;*/
@@ -503,9 +522,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }*/
 
     protected void updateBattery() {
-        TextView altitudeTextView = (TextView) findViewById(R.id.voltageValueTextView);
+        TextView batteryTextView = (TextView) findViewById(R.id.voltageValueTextView);
         Battery droneBattery = this.drone.getAttribute(AttributeType.BATTERY);
-        altitudeTextView.setText(String.format("%3.1f", droneBattery.getBatteryVoltage()) + "V");
+        batteryTextView.setText(String.format("%3.1f", droneBattery.getBatteryVoltage()) + "V");
     }
 
     protected void updateAltitude() {
@@ -518,6 +537,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         TextView speedTextView = (TextView) findViewById(R.id.speedValueTextView);
         Speed droneSpeed = this.drone.getAttribute(AttributeType.SPEED);
         speedTextView.setText(String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
+    }
+    protected void updateYAW(){
+        TextView droneYAWTextView = (TextView) findViewById(R.id.yawValueTextView);
+        Attitude droneAttitude = this.drone.getAttribute(AttributeType.ATTITUDE);
+
+        droneYAWTextView.setText(String.format("%3.1f", droneAttitude.getYaw()) + "deg");
+        //droneYAWTextView.setText(String.format(Double.toString(droneAttitude.getYaw())));
+    }
+
+    protected void updateSatellite(){
+        TextView droneSatellite = (TextView) findViewById(R.id.satelliteValueTextView);
+        Gps droneGPS = this.drone.getAttribute(AttributeType.GPS);
+        //droneSatellite.setText(String.format("위성: %d", 14));
+        droneSatellite.setText(String.format("%d", droneGPS.getSatellitesCount()));
+    }
+
+    protected void updateMap(){
+        LatLong currentLatlongLocation = getCurrentLocation();
+        LatLng currentLatlngLocation = new LatLng(currentLatlongLocation.getLatitude(),currentLatlongLocation.getLongitude());
+        droneMovePath.add(currentLatlngLocation);
+
+        polyline.setCoords(droneMovePath);
+        polyline.setMap(naverMap);
+    }
+
+    protected LatLong getCurrentLocation(){
+        Gps gps = this.drone.getAttribute(AttributeType.GPS);
+        return gps.getPosition();
     }
 
     /*=======================================================================
@@ -542,7 +589,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }*/
 
     protected void updateVehicleModesForType(int droneType) {
-
         List<VehicleMode> vehicleModes = VehicleMode.getVehicleModePerDroneType(droneType);
         ArrayAdapter<VehicleMode> vehicleModeArrayAdapter = new ArrayAdapter<VehicleMode>(this, android.R.layout.simple_spinner_item, vehicleModes);
         vehicleModeArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);

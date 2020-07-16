@@ -141,6 +141,7 @@
                 android:paddingTop="5dp"
                 android:paddingBottom="5dp"
                 android:spinnerMode="dropdown"
+                android:textAlignment="inherit"
                 android:textColor="#FFFFFF" />
 
             <TextView
