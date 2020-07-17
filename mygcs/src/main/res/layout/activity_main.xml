@@ -51,32 +51,56 @@
         app:layout_constraintVertical_bias="1.0" />
 
     <Button
-        android:id="@+id/button"
-        android:layout_width="33dp"
-        android:layout_height="33dp"
-        android:background="@drawable/btn_shape"
-        android:text="My Location"
-        android:textColor="#00BCD4"
-        android:textSize="7sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/map"
-        app:layout_constraintHorizontal_bias="0.133"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.98" />
-
-    <ToggleButton
-        android:id="@+id/toggleButton"
+        android:id="@+id/btnConnect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="USBconnect"
+        android:onClick="onBtnConnectTap"
+        android:text="connect"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/map"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/map"
         app:layout_constraintTop_toTopOf="@+id/map"
-        app:layout_constraintVertical_bias="1.0"
-        android:onClick="onBtnConnectTap"/>
+        app:layout_constraintVertical_bias="0.87" />
+
+    <Button
+        android:id="@+id/btnARM"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onArmButtonTap"
+        android:text="ARM"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/spinner"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/btnTake_On-Off"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onArmButtonTap"
+        android:text="TAKE-OFF"
+        app:layout_constraintBottom_toBottomOf="@+id/map"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.136"
+        app:layout_constraintStart_toStartOf="@+id/btnARM"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/btnLand"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onArmButtonTap"
+        android:text="LAND"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.273"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
 
     <TableLayout
         android:layout_width="match_parent"

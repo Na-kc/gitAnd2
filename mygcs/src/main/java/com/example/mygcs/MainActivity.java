@@ -23,10 +23,14 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.naver.maps.geometry.LatLng;
+import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.OnMapReadyCallback;
+import com.naver.maps.map.overlay.LocationOverlay;
+import com.naver.maps.map.overlay.Marker;
+import com.naver.maps.map.overlay.OverlayImage;
 import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
 import com.o3dr.android.client.ControlTower;
@@ -70,7 +74,7 @@ import static com.o3dr.android.client.apis.ExperimentalApi.getApi;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
     private FusedLocationSource locationSource;
-    private NaverMap naverMap;
+    private NaverMap mNaverMap;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -98,8 +102,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     Handler mainHandler;
 
-    PolylineOverlay polyline = new PolylineOverlay();
-    ArrayList<LatLng> droneMovePath;
+    ArrayList<LatLng> coords = new ArrayList<>();
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -232,28 +237,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public void onMapReady(@NonNull final NaverMap naverMap) {
+    public void onMapReady(@NonNull NaverMap naverMap) {
+        mNaverMap = naverMap;
         naverMap.setLocationSource(locationSource);
 
         final ToggleButton toggleButton2 = (ToggleButton) findViewById(R.id.toggleButton2);
-        final ToggleButton USBconnect = (ToggleButton) findViewById(R.id.toggleButton);
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
-        Button button = (Button) findViewById(R.id.button);
 
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
                 if (position == 0) {
                     Toast.makeText(getApplicationContext(), "Basic", Toast.LENGTH_SHORT).show();
-                    naverMap.setMapType(NaverMap.MapType.Basic);
+                    mNaverMap.setMapType(NaverMap.MapType.Basic);
                 } else if (position == 1) {
-                    naverMap.setMapType(NaverMap.MapType.Navi);
+                    mNaverMap.setMapType(NaverMap.MapType.Navi);
                     Toast.makeText(getApplicationContext(), "Navi", Toast.LENGTH_SHORT).show();
                 } else if (position == 2) {
-                    naverMap.setMapType(NaverMap.MapType.Satellite);
+                    mNaverMap.setMapType(NaverMap.MapType.Satellite);
                     Toast.makeText(getApplicationContext(), "Satellite", Toast.LENGTH_SHORT).show();
                 } else if (position == 3) {
-                    naverMap.setMapType(NaverMap.MapType.Hybrid);
+                    mNaverMap.setMapType(NaverMap.MapType.Hybrid);
                     Toast.makeText(getApplicationContext(), "Hybride", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -267,18 +271,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View view) {
                 if (toggleButton2.isChecked()) {
-                    naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
+                    mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
                 } else {
-                    naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
+                    mNaverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
                 }
             }
         });
 
-        button.setOnClickListener(new Button.OnClickListener() {
-            public void onClick(View view) {
-                naverMap.setLocationTrackingMode(LocationTrackingMode.Follow);
-            }
-        });
 
     }
     @Override
@@ -286,6 +285,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onStart();
         this.controlTower.connect(this);
         updateVehicleModesForType(this.droneType);
+
     }
 
     @Override
@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onStop();
         if (this.drone.isConnected()) {
             this.drone.disconnect();
-            updateConnectedButton(false);
+            //updateConnectedButton(false);
         }
 
         this.controlTower.unregisterDrone(this.drone);
@@ -324,19 +324,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.STATE_CONNECTED:
                 alertUser("Drone Connected");
                 updateConnectedButton(this.drone.isConnected());
-                //updateArmButton();
+                updateArmButton();
                 checkSoloState();
                 break;
 
             case AttributeEvent.STATE_DISCONNECTED:
                 alertUser("Drone Disconnected");
                 updateConnectedButton(this.drone.isConnected());
-                //updateArmButton();
+                updateArmButton();
                 break;
 
             case AttributeEvent.STATE_UPDATED:
             case AttributeEvent.STATE_ARMING:
-                //updateArmButton();
+                updateArmButton();
                 break;
 
             case AttributeEvent.TYPE_UPDATED:
@@ -499,9 +499,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    /*protected void updateArmButton() {
+    protected void updateArmButton() {
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
-        Button armButton = (Button) findViewById(R.id.btnArmTakeOff);
+        Button armButton = (Button) findViewById(R.id.btnARM);
 
         if (!this.drone.isConnected()) {
             armButton.setVisibility(View.INVISIBLE);
@@ -519,7 +519,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // Connected but not Armed
             armButton.setText("ARM");
         }
-    }*/
+    }
 
     protected void updateBattery() {
         TextView batteryTextView = (TextView) findViewById(R.id.voltageValueTextView);
@@ -556,10 +556,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void updateMap(){
         LatLong currentLatlongLocation = getCurrentLocation();
         LatLng currentLatlngLocation = new LatLng(currentLatlongLocation.getLatitude(),currentLatlongLocation.getLongitude());
-        droneMovePath.add(currentLatlngLocation);
+        Log.d("lng","위도 : "+ currentLatlongLocation.getLatitude() + "경도 : "+ currentLatlongLocation.getLongitude());
+        //droneMovePath.add(currentLatlngLocation);
+        Attitude droneAttitude = this.drone.getAttribute(AttributeType.ATTITUDE);
 
-        polyline.setCoords(droneMovePath);
-        polyline.setMap(naverMap);
+        LocationOverlay locationOverlay = mNaverMap.getLocationOverlay();
+        locationOverlay.setVisible(true);
+        locationOverlay.setPosition(currentLatlngLocation);
+        locationOverlay.setBearing((float) droneAttitude.getYaw() - 90);
+        locationOverlay.setIcon(OverlayImage.fromResource(R.drawable.drone));
+
+        PolylineOverlay polyline = new PolylineOverlay();
+        coords.add(currentLatlngLocation);
+        polyline.setCoords(coords);
+        polyline.setMap(mNaverMap);
+
+        CameraUpdate cameraUpdate = CameraUpdate.scrollTo(currentLatlngLocation);
+        mNaverMap.moveCamera(cameraUpdate);
     }
 
     protected LatLong getCurrentLocation(){
@@ -868,7 +881,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (locationSource.onRequestPermissionsResult(
                 requestCode, permissions, grantResults)) {
             if (!locationSource.isActivated()) { // 권한 거부됨
-                naverMap.setLocationTrackingMode(LocationTrackingMode.None);
+                mNaverMap.setLocationTrackingMode(LocationTrackingMode.None);
             }
             return;
         }
