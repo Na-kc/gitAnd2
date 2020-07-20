@@ -2,6 +2,7 @@ package com.example.mygcs;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -67,6 +68,7 @@ import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.o3dr.android.client.apis.ExperimentalApi.getApi;
@@ -102,8 +104,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     Handler mainHandler;
 
-    ArrayList<LatLng> coords = new ArrayList<>();
+    LocationOverlay locationOverlay;
 
+    ArrayList<LatLng> coords = new ArrayList<>();
+    PolylineOverlay polyline = new PolylineOverlay();
+    PolylineOverlay polyleadline = new PolylineOverlay();
 
 
     @Override
@@ -114,7 +119,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final Context context = getApplicationContext();
         this.controlTower = new ControlTower(context);
         this.drone = new Drone(context);
-
         locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
@@ -248,17 +252,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
                 if (position == 0) {
-                    Toast.makeText(getApplicationContext(), "Basic", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "일반지도", Toast.LENGTH_SHORT).show();
                     mNaverMap.setMapType(NaverMap.MapType.Basic);
                 } else if (position == 1) {
-                    mNaverMap.setMapType(NaverMap.MapType.Navi);
-                    Toast.makeText(getApplicationContext(), "Navi", Toast.LENGTH_SHORT).show();
+                    mNaverMap.setMapType(NaverMap.MapType.Terrain);
+                    Toast.makeText(getApplicationContext(), "지형도", Toast.LENGTH_SHORT).show();
                 } else if (position == 2) {
-                    mNaverMap.setMapType(NaverMap.MapType.Satellite);
-                    Toast.makeText(getApplicationContext(), "Satellite", Toast.LENGTH_SHORT).show();
-                } else if (position == 3) {
                     mNaverMap.setMapType(NaverMap.MapType.Hybrid);
-                    Toast.makeText(getApplicationContext(), "Hybride", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "위성지도", Toast.LENGTH_SHORT).show();
                 }
             }
             @Override
@@ -373,6 +374,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             case AttributeEvent.GPS_POSITION:
                 updateMap();
+                leadline();
                 break;
 
             /*case AttributeEvent.HOME_UPDATED:
@@ -560,16 +562,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //droneMovePath.add(currentLatlngLocation);
         Attitude droneAttitude = this.drone.getAttribute(AttributeType.ATTITUDE);
 
-        LocationOverlay locationOverlay = mNaverMap.getLocationOverlay();
+        locationOverlay = mNaverMap.getLocationOverlay();
         locationOverlay.setVisible(true);
         locationOverlay.setPosition(currentLatlngLocation);
         locationOverlay.setBearing((float) droneAttitude.getYaw() - 90);
         locationOverlay.setIcon(OverlayImage.fromResource(R.drawable.drone));
 
-        PolylineOverlay polyline = new PolylineOverlay();
         coords.add(currentLatlngLocation);
         polyline.setCoords(coords);
-        polyline.setMap(mNaverMap);
 
         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(currentLatlngLocation);
         mNaverMap.moveCamera(cameraUpdate);
@@ -635,6 +635,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double dy = pointA.getLongitude() - pointB.getLongitude();
         double dz = pointA.getAltitude() - pointB.getAltitude();
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    protected void initnaverMap() {
+        polyline.setMap(mNaverMap);
+    }
+
+    protected void leadline() {
+        LatLong currentLatlongLocation = getCurrentLocation();
+        LatLng currentLatlngLocation = new LatLng(currentLatlongLocation.getLatitude(),currentLatlongLocation.getLongitude());
+        Attitude droneAttitude = this.drone.getAttribute(AttributeType.ATTITUDE);
+        if (currentLatlngLocation != null) {
+            double dx = currentLatlongLocation.getLatitude() + 0.0005*Math.cos(Math.toRadians(droneAttitude.getYaw()));
+            double dy = currentLatlongLocation.getLongitude() + 0.0005*Math.sin(Math.toRadians(droneAttitude.getYaw()));
+
+            polyleadline.setCoords(Arrays.asList(
+                    new LatLng(currentLatlongLocation.getLatitude(),currentLatlongLocation.getLongitude()),
+                    new LatLng(dx,dy)
+            ));
+            polyleadline.setColor(Color.YELLOW);
+            polyleadline.setPattern(10, 5);
+            polyleadline.setMap(mNaverMap);
+            Log.d("leadline","leadline");
+        }
     }
 
     private void takePhoto() {

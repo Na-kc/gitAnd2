@@ -2,9 +2,8 @@
 
 <resources>
     <string-array name="menu">
-        <item>Basic</item>
-        <item>Navi</item>
-        <item>Satellite</item>
-        <item>Hybride</item>
+        <item>일반지도</item>
+        <item>지형도</item>
+        <item>위성지도</item>
     </string-array>
 </resources>
