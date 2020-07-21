@@ -110,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     PolylineOverlay polyline = new PolylineOverlay();
     PolylineOverlay polyleadline = new PolylineOverlay();
 
+    private double takeoffAltitude = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -453,7 +454,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         } else if (vehicleState.isArmed()) {
             // Take off
-            ControlApi.getApi(this.drone).takeoff(10, new AbstractCommandListener() {
+            ControlApi.getApi(this.drone).takeoff(takeoffAltitude, new AbstractCommandListener() {
 
                 @Override
                 public void onSuccess() {
@@ -487,6 +488,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             });
         }
+    }
+
+    public void onAltitudeTap(View view) {
+        Button plusButton = (Button) findViewById(R.id.plusButton);
+        Button minusButton = (Button) findViewById(R.id.minusButton);
+        if(plusButton.getVisibility() == View.INVISIBLE)
+        {
+            plusButton.setVisibility(View.VISIBLE);
+            minusButton.setVisibility(View.VISIBLE);
+        }
+        else {
+            plusButton.setVisibility(View.INVISIBLE);
+            minusButton.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    public void onPlusTap(View view) {
+        Button altitudeButton = (Button) findViewById(R.id.altitudeButton);
+        takeoffAltitude += 0.5;
+        altitudeButton.setText(Double.toString(takeoffAltitude)+"\n"+"이륙고도");
+    }
+    public void onMinusTap(View view) {
+        Button altitudeButton = (Button) findViewById(R.id.altitudeButton);
+        takeoffAltitude -= 0.5;
+        altitudeButton.setText(Double.toString(takeoffAltitude)+"\n"+"이륙고도");
     }
 
     // UI updating
