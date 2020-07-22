@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     PolylineOverlay polyline = new PolylineOverlay();
     PolylineOverlay polyleadline = new PolylineOverlay();
 
-    private double takeoffAltitude = 3.0;
+    private double takeoffAltitude = 10.0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -443,8 +443,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Intent intent = new Intent(this, EventActivity.class);
         if (vehicleState.isFlying()) {
             // Land
-
             VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
+
                 @Override
                 public void onError(int executionError) {
                     alertUser("Unable to land the vehicle.");
@@ -458,24 +458,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (vehicleState.isArmed()) {
             // Take off
             intent.putExtra("data", "지정한 이륙고도까지 기체가 상승합니다\n안전거리를 유지하세요");
-            startActivityForResult(intent, 1);
-            ControlApi.getApi(this.drone).takeoff(takeoffAltitude, new AbstractCommandListener() {
+            startActivityForResult(intent, 2);
 
-                @Override
-                public void onSuccess() {
-                    alertUser("Taking off...");
-                }
-
-                @Override
-                public void onError(int i) {
-                    alertUser("Unable to take off.");
-                }
-
-                @Override
-                public void onTimeout() {
-                    alertUser("Unable to take off.");
-                }
-            });
         } else if (!vehicleState.isConnected()) {
             // Connect
             alertUser("Connect to a drone first");
@@ -483,17 +467,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // Connected but not Armed
             intent.putExtra("data", "모터를 가동합니다.\n모터가 고속으로 회전합니다.");
             startActivityForResult(intent, 1);
-            VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
-                @Override
-                public void onError(int executionError) {
-                    alertUser("Unable to arm vehicle.");
-                }
-
-                @Override
-                public void onTimeout() {
-                    alertUser("Arming operation timed out.");
-                }
-            });
         }
     }
 
@@ -513,14 +486,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void onPlusTap(View view) {
         Button altitudeButton = (Button) findViewById(R.id.altitudeButton);
-        if(takeoffAltitude <= 10){
+        if(takeoffAltitude < 10){
             takeoffAltitude += 0.5;
             altitudeButton.setText(Double.toString(takeoffAltitude)+"m\n"+"이륙고도");
         }
     }
     public void onMinusTap(View view) {
         Button altitudeButton = (Button) findViewById(R.id.altitudeButton);
-        if(takeoffAltitude >= 3) {
+        if(takeoffAltitude > 3) {
             takeoffAltitude -= 0.5;
             altitudeButton.setText(Double.toString(takeoffAltitude)+"m\n"+"이륙고도");
         }
@@ -558,6 +531,56 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (vehicleState.isConnected()) {
             // Connected but not Armed
             armButton.setText("ARM");
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+            if(requestCode==1){
+                if(resultCode==RESULT_OK){
+                    //데이터 받기
+                    VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
+
+                        @Override
+                        public void onError(int executionError) {
+                            alertUser("Unable to arm vehicle.");
+                        }
+
+                        @Override
+                        public void onTimeout() {
+                            alertUser("Arming operation timed out.");
+                        }
+                    });
+                }
+                else if(resultCode==RESULT_CANCELED) {
+                    // Connect
+                    alertUser("restart armButton");
+                }
+            }
+            else if(requestCode==2){
+                if(resultCode==RESULT_OK){
+                    //데이터 받기
+                    ControlApi.getApi(this.drone).takeoff(takeoffAltitude, new AbstractCommandListener() {
+
+                        @Override
+                        public void onSuccess() {
+                            alertUser("Taking off...");
+                        }
+
+                        @Override
+                        public void onError(int i) {
+                            alertUser("Unable to take off.");
+                        }
+
+                        @Override
+                        public void onTimeout() {
+                            alertUser("Unable to take off.");
+                        }
+                    });
+                }
+                else if(resultCode==RESULT_CANCELED) {
+                    alertUser("restart takeoffButton");
+                }
         }
     }
 

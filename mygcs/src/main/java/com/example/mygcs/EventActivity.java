@@ -39,12 +39,12 @@ public class EventActivity extends Activity {
         //액티비티(팝업) 닫기
         finish();
     }
-
+    //확인 버튼 클릭
     public void cancelClick(View v){
         //데이터 전달하기
         Intent intent = new Intent();
         //intent.putExtra("result", "Close Popup");
-        setResult(RESULT_OK, intent);
+        setResult(RESULT_CANCELED, intent);
 
         //액티비티(팝업) 닫기
         finish();
