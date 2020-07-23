@@ -1,14 +1,17 @@
 package com.example.mygcs;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.graphics.PointF;
 import android.graphics.SurfaceTexture;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -35,6 +38,7 @@ import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
 import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
+import com.naver.maps.map.util.MarkerIcons;
 import com.o3dr.android.client.ControlTower;
 import com.o3dr.android.client.Drone;
 import com.o3dr.android.client.apis.ControlApi;
@@ -59,6 +63,7 @@ import com.o3dr.services.android.lib.drone.property.Altitude;
 import com.o3dr.services.android.lib.drone.property.Attitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
 import com.o3dr.services.android.lib.drone.property.Gps;
+import com.o3dr.services.android.lib.drone.property.GuidedState;
 import com.o3dr.services.android.lib.drone.property.Home;
 import com.o3dr.services.android.lib.drone.property.Speed;
 import com.o3dr.services.android.lib.drone.property.State;
@@ -111,9 +116,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     ArrayList<LatLng> coords = new ArrayList<>();
     PolylineOverlay polyline = new PolylineOverlay();
     PolylineOverlay polyleadline = new PolylineOverlay();
+    Marker marker = new Marker();
 
     private double takeoffAltitude = 10.0;
-
+    private LatLong point;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -143,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 onFlightModeSelected(view);
+                ((TextView)parent.getChildAt(0)).setTextColor(Color.WHITE);
             }
 
             @Override
@@ -282,7 +289,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        naverMap.setOnMapLongClickListener(new NaverMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(@NonNull PointF pointF, @NonNull LatLng latLng) {
+                point = new LatLong(latLng.latitude,latLng.longitude);
+                marker.setPosition(latLng);
+                marker.setIcon(MarkerIcons.BLACK);
+                marker.setIconTintColor(Color.YELLOW);
+                marker.setMap(mNaverMap);
 
+                Intent intent = new Intent(MainActivity.this, EventActivity.class);
+                intent.putExtra("data", "확인하시면 가이드모드로 전환 후 기체가 이동됩니다.");
+                startActivityForResult(intent, 3);
+
+            }
+
+        });
     }
     @Override
     public void onStart() {
@@ -438,6 +460,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
+    public static boolean CheckGoal(final Drone drone, LatLng recentLatLng) {
+        GuidedState guidedState = drone.getAttribute(AttributeType.GUIDED_STATE);
+        LatLng target = new LatLng(guidedState.getCoordinate().getLatitude(),
+                guidedState.getCoordinate().getLongitude());
+        return target.distanceTo(recentLatLng) <= 1;
+    }
+
     public void onArmButtonTap(View view) {
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         Intent intent = new Intent(this, EventActivity.class);
@@ -499,6 +528,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
+
 
     // UI updating
     // ==========================================================
@@ -582,6 +612,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     alertUser("restart takeoffButton");
                 }
         }
+            else if(requestCode==3) {
+                if (resultCode == RESULT_OK) {
+                    VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED,
+                            new AbstractCommandListener() {
+                                @Override
+
+                                public void onSuccess() {
+
+                                    ControlApi.getApi(drone).goTo(point, true, null);
+                                }
+
+                                @Override
+
+                                public void onError(int i) {
+
+                                }
+                                @Override
+                                public void onTimeout() {
+                                }
+                            });
+                }
+                else if(resultCode==RESULT_CANCELED) {
+                    alertUser("restart GuidedMode");
+                }
+            }
     }
 
     protected void updateBattery() {
