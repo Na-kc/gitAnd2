@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private double takeoffAltitude = 10.0;
     private LatLong point;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -130,6 +131,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.drone = new Drone(context);
         locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+        this.modeSelector = (Spinner) findViewById(R.id.modeSelect);
+        this.modeSelector.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                onFlightModeSelected(view);
+                Log.d("myCheck", "parent 체크 : " + parent);
+                TextView txtView = (TextView)parent.getChildAt(0);
+                try {
+                    txtView.setTextColor(Color.WHITE);
+                } catch (Exception e) {
+                    Log.d("myCheck", "예외처리 : " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
+            }
+        });
 
         FragmentManager fm = getSupportFragmentManager();
 
@@ -144,19 +165,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         mapFragment.getMapAsync(this);
 
-        this.modeSelector = (Spinner) findViewById(R.id.modeSelect);
-        this.modeSelector.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                onFlightModeSelected(view);
-                ((TextView)parent.getChildAt(0)).setTextColor(Color.WHITE);
-            }
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Do nothing
-            }
-        });
         /*=========================================================================================
         final Button takePic = (Button) findViewById(R.id.take_photo_button);
         takePic.setOnClickListener(new View.OnClickListener() {
@@ -292,15 +301,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         naverMap.setOnMapLongClickListener(new NaverMap.OnMapLongClickListener() {
             @Override
             public void onMapLongClick(@NonNull PointF pointF, @NonNull LatLng latLng) {
+                State vehicleState = drone.getAttribute(AttributeType.STATE);
+                VehicleMode vehicleMode = vehicleState.getVehicleMode();
+
                 point = new LatLong(latLng.latitude,latLng.longitude);
                 marker.setPosition(latLng);
                 marker.setIcon(MarkerIcons.BLACK);
                 marker.setIconTintColor(Color.YELLOW);
                 marker.setMap(mNaverMap);
 
-                Intent intent = new Intent(MainActivity.this, EventActivity.class);
-                intent.putExtra("data", "확인하시면 가이드모드로 전환 후 기체가 이동됩니다.");
-                startActivityForResult(intent, 3);
+                if(vehicleMode.equals(VehicleMode.COPTER_GUIDED)){
+                    VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED,
+                        new AbstractCommandListener() {
+                            @Override
+
+                            public void onSuccess() {
+
+                                ControlApi.getApi(drone).goTo(point, true, null);
+                            }
+
+                            @Override
+
+                            public void onError(int i) {
+
+                            }
+                            @Override
+                            public void onTimeout() {
+                            }
+                        });
+                }
+                else{
+                    Intent intent = new Intent(MainActivity.this, EventActivity.class);
+                    intent.putExtra("data", "확인하시면 가이드모드로 전환 후 기체가 이동됩니다.");
+                    startActivityForResult(intent, 3);
+                }
 
             }
 
@@ -689,13 +723,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(currentLatlngLocation);
         mNaverMap.moveCamera(cameraUpdate);
+
+        if(CheckGoal(drone,currentLatlngLocation)){
+            marker.setMap(null);
+        }
     }
 
     protected LatLong getCurrentLocation(){
         Gps gps = this.drone.getAttribute(AttributeType.GPS);
         return gps.getPosition();
     }
-
     /*=======================================================================
     protected void updateDistanceFromHome() {
         TextView distanceTextView = (TextView) findViewById(R.id.distanceValueTextView);
