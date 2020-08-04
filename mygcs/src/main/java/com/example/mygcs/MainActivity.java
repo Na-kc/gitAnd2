@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     PolylineOverlay polyleadline = new PolylineOverlay();
     private Marker marker = new Marker();
 
-    private double takeoffAltitude = 10.0;
+    private double takeoffAltitude = 1.0;
     private LatLong point;
 
     @Override
@@ -326,12 +326,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
-        naverMap.setOnMapClickListener(new NaverMap.OnMapClickListener() {
+        /*naverMap.setOnMapClickListener(new NaverMap.OnMapClickListener() {
             @Override
             public void onMapClick(@NonNull PointF pointF, @NonNull LatLng latLng) {
                 makeMarker(mNaverMap,latLng);
             }
-        });
+        });*/
 
         naverMap.addOnCameraChangeListener(new NaverMap.OnCameraChangeListener() {
             @Override
@@ -484,7 +484,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.GPS_POSITION:
                 updateMap();
                 leadline();
-                updateDroneMarker();
                 break;
 
             /*case AttributeEvent.HOME_UPDATED:
@@ -638,7 +637,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     public void onMinusTap(View view) {
         Button altitudeButton = (Button) findViewById(R.id.altitudeButton);
-        if(takeoffAltitude > 3) {
+        if(takeoffAltitude > 0) {
             takeoffAltitude -= 0.5;
             altitudeButton.setText(Double.toString(takeoffAltitude)+"m\n"+"이륙고도");
         }
@@ -811,18 +810,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    protected void updateDroneMarker(){
-        LatLng currentLatlngLocation = getCurrentLatLng();
-        marker.setPosition(currentLatlngLocation);
-        marker.setMap(mNaverMap);
-
-        CameraUpdate cameraUpdate = CameraUpdate.scrollTo(currentLatlngLocation);
-        mNaverMap.moveCamera(cameraUpdate);
-    }
     protected LatLong getCurrentLocation(){
         Gps gps = this.drone.getAttribute(AttributeType.GPS);
         return gps.getPosition();
     }
+
     /*=======================================================================
     protected void updateDistanceFromHome() {
         TextView distanceTextView = (TextView) findViewById(R.id.distanceValueTextView);
