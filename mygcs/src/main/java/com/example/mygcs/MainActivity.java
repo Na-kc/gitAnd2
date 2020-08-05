@@ -83,7 +83,9 @@ import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -364,7 +366,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             @Override
 
                             public void onSuccess() {
-
                                 ControlApi.getApi(drone).goTo(point, true, null);
                             }
 
@@ -445,6 +446,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
 
             case AttributeEvent.STATE_UPDATED:
+
             case AttributeEvent.STATE_ARMING:
                 updateArmButton();
                 break;
@@ -486,6 +488,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 leadline();
                 break;
 
+            case AttributeEvent.AUTOPILOT_MESSAGE:
+                //String message = extras.toString();
+                String message = extras.getString("com.o3dr.services.android.lib.attribute.event.extra.AUTOPILOT_MESSAGE");
+                alertUser(message);
+                Log.d("Autopilot_message",message);
+
+
             /*case AttributeEvent.HOME_UPDATED:
                 updateDistanceFromHome();
                 break;*/
@@ -522,6 +531,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
+
+    public void changeModeLoiter(){
+        VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LOITER);
+    }
+
 
     public void onFlightModeSelected(View view) {
         VehicleMode vehicleMode = (VehicleMode) this.modeSelector.getSelectedItem();
@@ -801,11 +815,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         coords.add(currentLatlngLocation);
         polyline.setCoords(coords);
+        polyline.setColor(Color.WHITE);
+        polyline.setMap(mNaverMap);
 
         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(currentLatlngLocation);
         mNaverMap.moveCamera(cameraUpdate);
 
         if(CheckGoal(drone,currentLatlngLocation)){
+            changeModeLoiter();
             marker.setMap(null);
         }
     }
@@ -872,7 +889,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     protected void alertUser(String message) {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-        recycler_list.add("★ "+ message);
+        String localTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        recycler_list.add("★" + " [" + localTime + "] " + message);
         refreshRecyclerView();
         Log.d(TAG, message);
     }
