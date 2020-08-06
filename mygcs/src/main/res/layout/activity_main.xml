@@ -14,24 +14,9 @@
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <Spinner
-        android:id="@+id/spinner"
-        android:layout_width="100dp"
-        android:layout_height="40dp"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:background="#FFFFFF"
-        android:entries="@array/menu"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/map"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1.0" />
 
     <ToggleButton
@@ -44,24 +29,11 @@
         android:typeface="normal"
         android:verticalScrollbarPosition="defaultPosition"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/spinner"
+        app:layout_constraintEnd_toStartOf="@+id/clearButton"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1.0" />
-
-    <Button
-        android:id="@+id/lockButton"
-        android:layout_width="wrap_content"
-        android:layout_height="45dp"
-        android:onClick="onBtnConnectTap"
-        android:text="맵 잠금"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/map"
-        app:layout_constraintHorizontal_bias="0.704"
-        app:layout_constraintStart_toStartOf="@+id/map"
-        app:layout_constraintTop_toTopOf="@+id/map"
-        app:layout_constraintVertical_bias="0.89" />
 
     <Button
         android:id="@+id/mapButton"
@@ -70,7 +42,7 @@
         android:onClick="onMapTap"
         android:text="맵 잠금"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/toggleButton2"
+        app:layout_constraintEnd_toStartOf="@+id/spinner"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -82,12 +54,32 @@
         android:layout_height="45dp"
         android:onClick="onBtnConnectTap"
         android:text="맵 이동"
+        app:layout_constraintBottom_toTopOf="@+id/lockButton"
+        app:layout_constraintStart_toStartOf="@+id/lockButton" />
+
+    <Spinner
+        android:id="@+id/spinner"
+        android:layout_width="80dp"
+        android:layout_height="40dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
+        android:background="#FFFFFF"
+        android:entries="@array/menu"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/map"
-        app:layout_constraintHorizontal_bias="0.704"
-        app:layout_constraintStart_toStartOf="@+id/map"
+        app:layout_constraintEnd_toStartOf="@+id/toggleButton2"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/map"
-        app:layout_constraintVertical_bias="0.792" />
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/lockButton"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:onClick="onBtnConnectTap"
+        android:text="맵 잠금"
+        app:layout_constraintBottom_toTopOf="@+id/mapButton"
+        app:layout_constraintStart_toStartOf="@+id/mapButton" />
 
     <Button
         android:id="@+id/btnConnect"
@@ -109,8 +101,8 @@
         android:onClick="onArmButtonTap"
         android:text="ARM"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/spinner"
-        app:layout_constraintHorizontal_bias="0.158"
+        app:layout_constraintEnd_toEndOf="@+id/clearButton"
+        app:layout_constraintHorizontal_bias="0.166"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1.0" />
@@ -336,5 +328,18 @@
             android:scrollbars="vertical" />
 
     </LinearLayout>
+
+    <Button
+        android:id="@+id/clearButton"
+        android:layout_width="wrap_content"
+        android:layout_height="45dp"
+        android:onClick="onClearTap"
+        android:text="clear"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
 
 </android.support.constraint.ConstraintLayout>

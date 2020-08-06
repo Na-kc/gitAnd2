@@ -151,7 +151,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Button minusButton = (Button) findViewById(R.id.minusButton);
         Button lockButton = (Button) findViewById(R.id.lockButton);
         Button moveButton = (Button) findViewById(R.id.moveButton);
+        Button btnARM = (Button) findViewById(R.id.btnARM);
 
+        btnARM.setVisibility(View.INVISIBLE);
         if(plusButton.getVisibility() == View.VISIBLE)
         {
             plusButton.setVisibility(View.INVISIBLE);
@@ -205,7 +207,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 takePhoto();
             }
         });
-
         final Button toggleVideo = (Button) findViewById(R.id.toggle_video_recording);
         toggleVideo.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -213,7 +214,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 toggleVideoRecording();
             }
         });
-
         videoView = (TextureView) findViewById(R.id.video_content);
         videoView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
@@ -222,25 +222,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startVideoStream.setEnabled(true);
                 startVideoStreamUsingObserver.setEnabled(true);
             }
-
             @Override
             public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-
             }
-
             @Override
             public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
                 startVideoStream.setEnabled(false);
                 startVideoStreamUsingObserver.setEnabled(false);
                 return true;
             }
-
             @Override
             public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-
             }
         });
-
         startVideoStream = (Button) findViewById(R.id.start_video_stream);
         startVideoStream.setEnabled(false);
         startVideoStream.setOnClickListener(new View.OnClickListener() {
@@ -250,7 +244,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startVideoStream(new Surface(videoView.getSurfaceTexture()));
             }
         });
-
         stopVideoStream = (Button) findViewById(R.id.stop_video_stream);
         stopVideoStream.setEnabled(false);
         stopVideoStream.setOnClickListener(new View.OnClickListener() {
@@ -260,7 +253,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 stopVideoStream();
             }
         });
-
         startVideoStreamUsingObserver = (Button) findViewById(R.id.start_video_stream_using_observer);
         startVideoStreamUsingObserver.setEnabled(false);
         startVideoStreamUsingObserver.setOnClickListener(new View.OnClickListener() {
@@ -270,7 +262,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startVideoStreamForObserver();
             }
         });
-
         stopVideoStreamUsingObserver = (Button) findViewById(R.id.stop_video_stream_using_observer);
         stopVideoStreamUsingObserver.setEnabled(false);
         stopVideoStreamUsingObserver.setOnClickListener(new View.OnClickListener() {
@@ -362,22 +353,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if(vehicleMode.equals(VehicleMode.COPTER_GUIDED)){
                     VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED,
-                        new AbstractCommandListener() {
-                            @Override
+                            new AbstractCommandListener() {
+                                @Override
 
-                            public void onSuccess() {
-                                ControlApi.getApi(drone).goTo(point, true, null);
-                            }
+                                public void onSuccess() {
+                                    ControlApi.getApi(drone).goTo(point, true, null);
+                                }
 
-                            @Override
+                                @Override
 
-                            public void onError(int i) {
+                                public void onError(int i) {
 
-                            }
-                            @Override
-                            public void onTimeout() {
-                            }
-                        });
+                                }
+                                @Override
+                                public void onTimeout() {
+                                }
+                            });
                 }
                 else {
                     Intent intent = new Intent(MainActivity.this, EventActivity.class);
@@ -485,6 +476,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             case AttributeEvent.GPS_POSITION:
                 updateMap();
+                cameraUpdate();
                 leadline();
                 break;
 
@@ -658,6 +650,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    public void onClearTap(View view) {
+        coords.clear();
+        polyline.setMap(null);
+    }
 
     // UI updating
     // ==========================================================
@@ -695,77 +691,77 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-            if(requestCode==1){
-                if(resultCode==RESULT_OK){
-                    //데이터 받기
-                    VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
+        if(requestCode==1){
+            if(resultCode==RESULT_OK){
+                //데이터 받기
+                VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
 
-                        @Override
-                        public void onError(int executionError) {
-                            alertUser("Unable to arm vehicle.");
-                        }
+                    @Override
+                    public void onError(int executionError) {
+                        alertUser("Unable to arm vehicle.");
+                    }
 
-                        @Override
-                        public void onTimeout() {
-                            alertUser("Arming operation timed out.");
-                        }
-                    });
-                }
-                else if(resultCode==RESULT_CANCELED) {
-                    // Connect
-                    alertUser("restart armButton");
-                }
+                    @Override
+                    public void onTimeout() {
+                        alertUser("Arming operation timed out.");
+                    }
+                });
             }
-            else if(requestCode==2){
-                if(resultCode==RESULT_OK){
-                    //데이터 받기
-                    ControlApi.getApi(this.drone).takeoff(takeoffAltitude, new AbstractCommandListener() {
-
-                        @Override
-                        public void onSuccess() {
-                            alertUser("Taking off...");
-                        }
-
-                        @Override
-                        public void onError(int i) {
-                            alertUser("Unable to take off.");
-                        }
-
-                        @Override
-                        public void onTimeout() {
-                            alertUser("Unable to take off.");
-                        }
-                    });
-                }
-                else if(resultCode==RESULT_CANCELED) {
-                    alertUser("restart takeoffButton");
-                }
+            else if(resultCode==RESULT_CANCELED) {
+                // Connect
+                alertUser("restart armButton");
+            }
         }
-            else if(requestCode==3) {
-                if (resultCode == RESULT_OK) {
-                    VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED,
-                            new AbstractCommandListener() {
-                                @Override
+        else if(requestCode==2){
+            if(resultCode==RESULT_OK){
+                //데이터 받기
+                ControlApi.getApi(this.drone).takeoff(takeoffAltitude, new AbstractCommandListener() {
 
-                                public void onSuccess() {
+                    @Override
+                    public void onSuccess() {
+                        alertUser("Taking off...");
+                    }
 
-                                    ControlApi.getApi(drone).goTo(point, true, null);
-                                }
+                    @Override
+                    public void onError(int i) {
+                        alertUser("Unable to take off.");
+                    }
 
-                                @Override
-
-                                public void onError(int i) {
-
-                                }
-                                @Override
-                                public void onTimeout() {
-                                }
-                            });
-                }
-                else if(resultCode==RESULT_CANCELED) {
-                    alertUser("restart GuidedMode");
-                }
+                    @Override
+                    public void onTimeout() {
+                        alertUser("Unable to take off.");
+                    }
+                });
             }
+            else if(resultCode==RESULT_CANCELED) {
+                alertUser("restart takeoffButton");
+            }
+        }
+        else if(requestCode==3) {
+            if (resultCode == RESULT_OK) {
+                VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED,
+                        new AbstractCommandListener() {
+                            @Override
+
+                            public void onSuccess() {
+
+                                ControlApi.getApi(drone).goTo(point, true, null);
+                            }
+
+                            @Override
+
+                            public void onError(int i) {
+
+                            }
+                            @Override
+                            public void onTimeout() {
+                            }
+                        });
+            }
+            else if(resultCode==RESULT_CANCELED) {
+                alertUser("restart GuidedMode");
+            }
+        }
     }
 
     protected void updateBattery() {
@@ -800,6 +796,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         droneSatellite.setText(String.format("%d", droneGPS.getSatellitesCount()));
     }
 
+    protected void cameraUpdate() {
+        LatLong currentLatlongLocation = getCurrentLocation();
+        LatLng currentLatlngLocation = new LatLng(currentLatlongLocation.getLatitude(),currentLatlongLocation.getLongitude());
+
+        Button mapButton = (Button) findViewById(R.id.mapButton);
+        if((mapButton.getText()).equals("맵 잠금"))
+        {
+            if(currentLatlngLocation.equals(null)){
+                mNaverMap.setCameraPosition(new CameraPosition(DEFAULT_LATLNG, DEFAULT_ZOOM_LEVEL));
+            }
+            else{
+                CameraUpdate cameraUpdate = CameraUpdate.scrollTo(currentLatlngLocation);
+                mNaverMap.moveCamera(cameraUpdate);
+            }
+        }
+
+    }
     protected void updateMap(){
         LatLong currentLatlongLocation = getCurrentLocation();
         LatLng currentLatlngLocation = new LatLng(currentLatlongLocation.getLatitude(),currentLatlongLocation.getLongitude());
@@ -817,9 +830,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         polyline.setCoords(coords);
         polyline.setColor(Color.WHITE);
         polyline.setMap(mNaverMap);
-
-        CameraUpdate cameraUpdate = CameraUpdate.scrollTo(currentLatlngLocation);
-        mNaverMap.moveCamera(cameraUpdate);
 
         if(CheckGoal(drone,currentLatlngLocation)){
             changeModeLoiter();
@@ -839,9 +849,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double vehicleAltitude = droneAltitude.getAltitude();
         Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
         LatLong vehiclePosition = droneGps.getPosition();
-
         double distanceFromHome = 0;
-
         if (droneGps.isValid()) {
             LatLongAlt vehicle3DPosition = new LatLongAlt(vehiclePosition.getLatitude(), vehiclePosition.getLongitude(), vehicleAltitude);
             Home droneHome = this.drone.getAttribute(AttributeType.HOME);
@@ -849,7 +857,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             distanceFromHome = 0;
         }
-
         distanceTextView.setText(String.format("%3.1f", distanceFromHome) + "m");
     }*/
 
@@ -1208,7 +1215,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     /*public void test_btn(View view) {
         sendRecyclerMessage(String.format("%d 굉장히엄청나게대단하게심각하게긴텍스트",testCount++));
     }
-
     private void sendRecyclerMessage(String message) {
         recycler_list.add(String.format("★~" + message));
         refreshRecyclerView();
