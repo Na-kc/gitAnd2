@@ -897,7 +897,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void updateBattery() {
         TextView batteryTextView = (TextView) findViewById(R.id.voltageValueTextView);
         Battery droneBattery = this.drone.getAttribute(AttributeType.BATTERY);
-        batteryTextView.setText(String.format("%3.1f", droneBattery.getBatteryVoltage()) + "V");
+        batteryTextView.setText(String.format("전압 %3.1f", droneBattery.getBatteryVoltage()) + "V");
     }
 
     protected void updateAltitude() {
@@ -906,28 +906,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mRecentAltitude = droneAltitude.getRelativeAltitude();
 
-        altitudeTextView.setText(String.format("%3.1f", droneAltitude.getAltitude()) + "m");
+        altitudeTextView.setText(String.format("고도 %3.1f", droneAltitude.getAltitude()) + "m");
     }
 
     protected void updateSpeed() {
         TextView speedTextView = (TextView) findViewById(R.id.speedValueTextView);
         Speed droneSpeed = this.drone.getAttribute(AttributeType.SPEED);
-        speedTextView.setText(String.format("%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
+        speedTextView.setText(String.format("속도 %3.1f", droneSpeed.getGroundSpeed()) + "m/s");
     }
 
     protected void updateYAW(){
         TextView droneYAWTextView = (TextView) findViewById(R.id.yawValueTextView);
         Attitude droneAttitude = this.drone.getAttribute(AttributeType.ATTITUDE);
 
-        droneYAWTextView.setText(String.format("%3.1f", droneAttitude.getYaw()) + "deg");
+        droneYAWTextView.setText(String.format("YAW %3.1f", droneAttitude.getYaw()) + "deg");
         //droneYAWTextView.setText(String.format(Double.toString(droneAttitude.getYaw())));
     }
 
     protected void updateSatellite(){
         TextView droneSatellite = (TextView) findViewById(R.id.satelliteValueTextView);
         Gps droneGPS = this.drone.getAttribute(AttributeType.GPS);
-        //droneSatellite.setText(String.format("위성: %d", 14));
-        droneSatellite.setText(String.format("%d", droneGPS.getSatellitesCount()));
+        droneSatellite.setText(String.format("위성 %d", droneGPS.getSatellitesCount()));
     }
 
     protected void cameraUpdate() {
