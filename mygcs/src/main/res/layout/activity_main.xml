@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-
     <fragment
         android:id="@+id/map"
         android:name="com.naver.maps.map.MapFragment"
@@ -14,10 +13,10 @@
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <ToggleButton
         android:id="@+id/toggleButton2"
@@ -266,11 +265,11 @@
     </TableLayout>
 
     <Button
-        android:id="@+id/altitudeButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="onAltitudeTap"
-        android:text="1.0m\n이륙고도"
+        android:id="@+id/missionButton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:text="임무"
+        android:onClick="onMissionTap"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
@@ -279,35 +278,155 @@
         app:layout_constraintVertical_bias="0.093" />
 
     <Button
-        android:id="@+id/plusButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="onPlusTap"
-        android:text="+0.5"
+        android:id="@+id/ABbutton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:text="AB"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/missionButton"
+        app:layout_constraintTop_toBottomOf="@+id/missionButton"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/polygonButton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:text="다각형"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/ABbutton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/ABbutton"
+        app:layout_constraintTop_toBottomOf="@+id/ABbutton"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/cancelButton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:text="취소"
+        app:layout_constraintBottom_toBottomOf="@+id/clearButton"
+        app:layout_constraintEnd_toEndOf="@+id/polygonButton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/polygonButton"
+        app:layout_constraintTop_toBottomOf="@+id/polygonButton"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/altitudeButton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onAltitudeTap"
+        android:text="1.0m\n이륙고도"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/missionButton"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.225" />
+        app:layout_constraintVertical_bias="0.093" />
+
+    <Button
+        android:id="@+id/widthButton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onWidthTap"
+        android:text="5.5m\n비행폭"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/altitudeButton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.093" />
+
+    <Button
+        android:id="@+id/distanceButton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onDistanceTap"
+        android:text="50m\nAB거리"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/widthButton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.093" />
+
+    <Button
+        android:id="@+id/plusButton"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onPlusTap"
+        android:text="+0.5"
+        app:layout_constraintBottom_toBottomOf="@+id/toggleButton2"
+        app:layout_constraintEnd_toStartOf="@+id/missionButton"
+        app:layout_constraintStart_toStartOf="@+id/altitudeButton"
+        app:layout_constraintTop_toBottomOf="@+id/altitudeButton"
+        app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/minusButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
         android:onClick="onMinusTap"
         android:text="-0.5"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.336" />
+        app:layout_constraintEnd_toEndOf="@+id/plusButton"
+        app:layout_constraintStart_toStartOf="@+id/plusButton"
+        app:layout_constraintTop_toBottomOf="@+id/plusButton"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/plusButton2"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onWidthPlusTap"
+        android:text="+0.5"
+        app:layout_constraintBottom_toBottomOf="@+id/toggleButton2"
+        app:layout_constraintEnd_toStartOf="@+id/altitudeButton"
+        app:layout_constraintStart_toStartOf="@+id/widthButton"
+        app:layout_constraintTop_toBottomOf="@+id/widthButton"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/minusButton2"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onWidthMinusTap"
+        android:text="-0.5"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/plusButton2"
+        app:layout_constraintStart_toStartOf="@+id/plusButton2"
+        app:layout_constraintTop_toBottomOf="@+id/plusButton2"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/plusButton3"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onDistancePlusTap"
+        android:text="+10"
+        app:layout_constraintBottom_toBottomOf="@+id/toggleButton2"
+        app:layout_constraintEnd_toStartOf="@+id/widthButton"
+        app:layout_constraintStart_toStartOf="@+id/distanceButton"
+        app:layout_constraintTop_toBottomOf="@+id/distanceButton"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/minusButton3"
+        android:layout_width="80dp"
+        android:layout_height="60dp"
+        android:onClick="onDistanceMinusTap"
+        android:text="-10"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/plusButton3"
+        app:layout_constraintStart_toStartOf="@+id/plusButton3"
+        app:layout_constraintTop_toBottomOf="@+id/plusButton3"
+        app:layout_constraintVertical_bias="0.0" />
 
     <LinearLayout
         android:id="@+id/middle"
-        android:layout_width="638dp"
-        android:layout_height="176dp"
+        android:layout_width="409dp"
+        android:layout_height="183dp"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="@+id/map"
         app:layout_constraintEnd_toEndOf="parent"
@@ -323,7 +442,7 @@
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recyclerView"
-            android:layout_width="300dp"
+            android:layout_width="317dp"
             android:layout_height="match_parent"
             android:scrollbars="vertical" />
 
