@@ -38,6 +38,7 @@ import com.naver.maps.map.UiSettings;
 import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
+import com.naver.maps.map.overlay.PathOverlay;
 import com.naver.maps.map.overlay.PolygonOverlay;
 import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
@@ -75,6 +76,11 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
+import org.droidplanner.services.android.impl.core.helpers.geoTools.LineLatLong;
+import org.droidplanner.services.android.impl.core.polygon.Polygon;
+import org.droidplanner.services.android.impl.core.survey.grid.CircumscribedGrid;
+import org.droidplanner.services.android.impl.core.survey.grid.Trimmer;
+
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -101,13 +107,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     /*
     private static final int DEFAULT_UDP_PORT = 14550;
     private static final int DEFAULT_USB_BAUD_RATE = 57600;
-
     private Button startVideoStream;
     private Button stopVideoStream;
-
     private Button startVideoStreamUsingObserver;
     private Button stopVideoStreamUsingObserver;
-
     private MediaCodecManager mediaCodecManager;
     private TextureView videoView;
     private String videoTag = "testvideotag";
@@ -124,19 +127,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     Marker marker = new Marker();
     Marker marker_goal = new Marker(); // Guided 모드 마커
-    List<Marker> Auto_Marker = new ArrayList<>();       // 간격감시 마커
-    List<LatLng> PolygonLatLng = new ArrayList<>();                // 간격감시 폴리곤
-    List<LatLng> Auto_Polyline = new ArrayList<>();     // 간격감시 폴리라인
+    Marker polygonMarker;
+    public ArrayList<LatLong> polygonPointList = new ArrayList<>();
+    public ArrayList<LatLong> sprayPointList = new ArrayList<>();
+    private ArrayList<LatLng> polygonPoints = new ArrayList<>();
 
     PolylineOverlay polyline = new PolylineOverlay();           // 마커 지나간 길
     PolygonOverlay polygon = new PolygonOverlay();              // 간격 감시 시 뒤 사각형 (하늘)
     PolylineOverlay polylinePath = new PolylineOverlay();       // 간격 감시 시 Path (하양)
 
-    //private int Marker_Count = 0;
-    private int Auto_Marker_Count = 0;
+    private ArrayList<Marker> polygonMarkers = new ArrayList<>();
+
     private int Auto_Distance = 50;
     private double Gap_Distance = 5.5;
-    private int Gap_Top = 0;
     private double takeoffAltitude = 1.0;
     private LatLong point;
     protected double mRecentAltitude = 0;
@@ -259,13 +262,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 stopVideoStreamForObserver();
             }
         });
-
         // Initialize media codec manager to decode video stream packets.
         HandlerThread mediaCodecHandlerThread = new HandlerThread("MediaCodecHandlerThread");
         mediaCodecHandlerThread.start();
         Handler mediaCodecHandler = new Handler(mediaCodecHandlerThread.getLooper());
         mediaCodecManager = new MediaCodecManager(mediaCodecHandler);
-
         mainHandler = new Handler(getApplicationContext().getMainLooper());
         */
     }
@@ -309,20 +310,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        naverMap.setOnMapClickListener(new NaverMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(@NonNull PointF pointF, @NonNull LatLng latLng) {
-                final Button missonMode = (Button) findViewById(R.id.missionButton);
-                if (missonMode.getText().equals("임무")) {
-                    // nothing
-                } else if (missonMode.getText().equals("AB")) {
-                    MakeGapPolygon(latLng);
-                } else if (missonMode.getText().equals("다각형")) {
-                    MakeAreaPolygon(latLng);
-                }
+        naverMap.setOnMapClickListener((point, coord) ->{
+            Button missionBtn = findViewById(R.id.missionButton);
+            if(missionBtn.getText().equals("다각형")) {
+                polygonMarker = new Marker(new LatLng(coord.latitude, coord.longitude));
+                polygonMarkers.add(polygonMarker);
+                polygonPoints.add(new LatLng(coord.latitude, coord.longitude));
+                polygonMarker.setMap(naverMap);
+            }
+
+            if(polygonMarkers.size() > 2){
+                polygonPoints = MyUtil.sortLatLngArray(polygonPoints);
+                polygon.setCoords(polygonPoints);
+                polygon.setMap(naverMap);
             }
         });
-
 
         naverMap.addOnCameraChangeListener(new NaverMap.OnCameraChangeListener() {
             @Override
@@ -601,6 +603,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             minusButton.setVisibility(View.INVISIBLE);
         }
     }
+    public void onBtnCreateTap(View view) throws Exception {
+        missionAtoB();
+        PathOverlay pathOverlay = new PathOverlay();
+        ArrayList<LatLng> missionlatlng = new ArrayList<LatLng>();
+        for(LatLong latlongs : sprayPointList){
+            missionlatlng.add(MyUtil.latLongToLatLng(latlongs));
+        }
+        pathOverlay.setCoords(missionlatlng);
+        pathOverlay.setMap(mNaverMap);
+    }
 
     public void onMissionTap(View view) {
         Button ABButton = (Button) findViewById(R.id.ABbutton);
@@ -619,17 +631,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View view) {
                 Button missionButton = (Button) findViewById(R.id.missionButton);
                 missionButton.setText("다각형");
-
-                if (PolygonLatLng.size() >= 3) {
-                    polygon.setCoords(PolygonLatLng);
-                    polygon.setColor(Color.BLUE);
-                    polygon.setMap(mNaverMap);
-
-                    ComputeLargeLength();
-
-                } else {
-                    alertUser("3군데 이상 클릭하세요.");
-                }
             }
         });
         cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -761,28 +762,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         polygon.setMap(null);
         polylinePath.setMap(null);
         marker.setMap(null);
-
-        // Auto_Marker 지우기
-        if (Auto_Marker.size() != 0) {
-            for (int i = 0; i < Auto_Marker.size(); i++) {
-                Auto_Marker.get(i).setMap(null);
-            }
-        }
+        polygonMarker.setMap(null);
 
         // marker_goal 지우기
         marker_goal.setMap(null);
 
         // 리스트 값 지우기
         coords.clear();
-        Auto_Marker.clear();
-        Auto_Polyline.clear();
-        PolygonLatLng.clear();
-
-        // Top 변수 초기화
-        Auto_Marker_Count = 0;
-        Gap_Top = 0;
-
-        //Reached_Count = 1;
+        polygonPoints.clear();
+        polygonPointList.clear();
+        polygonMarkers.clear();
     }
 
     // UI updating
@@ -998,282 +987,68 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.modeSelector.setSelection(arrayAdapter.getPosition(vehicleMode));
     }
 
-    private void MakeWayPoint() {
-        final Mission mMission = new Mission();
-
-        for (int i = 0; i < Auto_Polyline.size(); i++) {
-            Waypoint waypoint = new Waypoint();
-            waypoint.setDelay(1);
-
-            LatLongAlt latLongAlt = new LatLongAlt(Auto_Polyline.get(i).latitude, Auto_Polyline.get(i).longitude, mRecentAltitude);
-            waypoint.setCoordinate(latLongAlt);
-
-            mMission.addMissionItem(waypoint);
+    protected void missionAtoB() throws Exception {
+        List<LatLong> polygonPoint = new ArrayList<>();
+        for(LatLng latLng : polygonPoints) {
+            polygonPoint.add(MyUtil.latLngToLatLong(latLng));
         }
-        /*
-        final Button BtnSendMission = (Button) findViewById(R.id.BtnSendMission);
-        final Button BtnFlightMode = (Button) findViewById(R.id.BtnFlightMode);
 
-        BtnSendMission.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(BtnFlightMode.getText().equals("간격\n감시")) {
-                    if (BtnSendMission.getText().equals("임무 전송")) {
-                        if (PolygonLatLng.size() == 4) {
-                            setMission(mMission);
-                        } else {
-                            alertUser("A,B좌표 필요");
-                        }
-                    } else if (BtnSendMission.getText().equals("임무 시작")) {
-                        // Auto모드로 전환
-                        ChangeToAutoMode();
-                        BtnSendMission.setText("임무 중지");
-                    } else if (BtnSendMission.getText().equals("임무 중지")) {
-                        pauseMission();
-                        ChangeToLoiterMode();
-                        BtnSendMission.setText("임무 재시작");
-                    } else if (BtnSendMission.getText().equals("임무 재시작")) {
-                        ChangeToAutoMode();
-                        BtnSendMission.setText("임무 중지");
-                    }
-                } else if(BtnFlightMode.getText().equals("경로\n비행")) {
-                    if(BtnSendMission.getText().equals("임무 전송")) {
-                        if (Auto_Polyline.size() > 0) {
-                            setMission(mMission);
-                        } else {
-                            alertUser("한 점 이상 클릭하세요.");
-                        }
-                    } else if(BtnSendMission.getText().equals("임무 시작")) {
-                        // Auto모드로 전환
-                        ChangeToAutoMode();
-                        BtnSendMission.setText("임무 중지");
-                    } else if(BtnSendMission.getText().equals("임무 중지")) {
-                        ChangeToLoiterMode();
-                        BtnSendMission.setText("임무 재시작");
-                    } else if(BtnSendMission.getText().equals("임무 재시작")) {
-                        ChangeToAutoMode();
-                        BtnSendMission.setText("임무 중지");
-                    }
-                }
+        double angle = 32.4;
+        double distance = Gap_Distance;
+
+        List<LineLatLong> circumscribedGrid = new CircumscribedGrid(polygonPoint, angle, distance).getGrid();
+        List<LineLatLong> trimedGrid = new Trimmer(circumscribedGrid, makePoly().getLines()).getTrimmedGrid();
+
+        for (int i = 0; i < trimedGrid.size(); i++) {
+            LineLatLong line = trimedGrid.get(i);
+            if(line.getStart().getLatitude() > line.getEnd().getLatitude()) {
+                LineLatLong line1 = new LineLatLong(line.getEnd(),line.getStart());
+                trimedGrid.set(i, line1);
             }
-        });*/
-    }
+        }
 
-    /*
-    private void setMission(Mission mMission) {
-        MissionApi.getApi(this.drone).setMission(mMission, true);
-    }
+//        Gps gps = this.drone.getAttribute(AttributeType.GPS);
+//        LatLong dronePosition = gps.getPosition();
+//
+//        double dist1 = MathUtils.pointToLineDistance(trimedGrid.get(0).getStart(), trimedGrid.get(0).getEnd(), dronePosition);
+//        double dist2 = MathUtils.pointToLineDistance(trimedGrid.get(trimedGrid.size()-1).getStart(), trimedGrid.get(trimedGrid.size()-1).getEnd(), dronePosition);
+//
+//        if (dist2 < dist1) {
+//            Collections.reverse(trimedGrid);
+//            double distStart = MathUtils.getDistance2D(dronePosition, trimedGrid.get(trimedGrid.size()-1).getStart());
+//            double distEnd = MathUtils.getDistance2D(dronePosition, trimedGrid.get(trimedGrid.size()-1).getEnd());
+//            if (distStart > distEnd) {
+//                for (int i = 0; i < trimedGrid.size(); i++) {
+//                    LineLatLong line = trimedGrid.get(i);
+//                    LineLatLong line1 = new LineLatLong(line.getEnd(),line.getStart());
+//                    trimedGrid.set(i, line1);
+//                }
+//            }
+//        }
 
-    private void pauseMission() {
-        MissionApi.getApi(this.drone).pauseMission(null);
-    }
-
-    private void Mission_Sent() {
-        alertUser("미션 업로드 완료");
-        Button BtnSendMission = (Button) findViewById(R.id.BtnSendMission);
-        BtnSendMission.setText("임무 시작");
-    }
-    */
-
-    // ################################# 간격 감시 ################################################
-
-    private void MakeGapPolygon(LatLng latLng) {
-        if (Gap_Top < 2) {
-            Marker marker = new Marker();
-            marker.setPosition(latLng);
-            PolygonLatLng.add(latLng);
-
-            // Auto_Marker에 넣기 위해 marker 생성..
-            Auto_Marker.add(marker);
-            Auto_Marker.get(Auto_Marker_Count).setMap(mNaverMap);
-
-            if (Gap_Top == 0) {
-                Auto_Marker.get(0).setIcon(MarkerIcons.BLACK);
-                Auto_Marker.get(0).setIconTintColor(Color.GRAY);
-                Auto_Marker.get(0).setWidth(80);
-                Auto_Marker.get(0).setHeight(80);
-                Auto_Marker.get(0).setAnchor(new PointF(0.5F, 0.5F));
-            } else if (Gap_Top == 1) {
-                Auto_Marker.get(1).setIcon(MarkerIcons.BLACK);
-                Auto_Marker.get(1).setIconTintColor(Color.GRAY);
-                Auto_Marker.get(1).setWidth(80);
-                Auto_Marker.get(1).setHeight(80);
-                Auto_Marker.get(1).setAnchor(new PointF(0.5F, 0.5F));
+        for (int i = 0; i < trimedGrid.size(); i++) {
+            LineLatLong line = trimedGrid.get(i);
+            if (i % 2 != 0) {
+                line = new LineLatLong(line.getEnd(), line.getStart());
+                trimedGrid.set(i,line);
             }
-
-            Gap_Top++;
-            Auto_Marker_Count++;
         }
-        if (Auto_Marker_Count == 2) {
-            double heading = MyUtil.computeHeading(Auto_Marker.get(0).getPosition(), Auto_Marker.get(1).getPosition());
 
-            LatLng latLng1 = MyUtil.computeOffset(Auto_Marker.get(1).getPosition(), Auto_Distance, heading + 90);
-            LatLng latLng2 = MyUtil.computeOffset(Auto_Marker.get(0).getPosition(), Auto_Distance, heading + 90);
-
-            // ############################################################################
-            PolygonLatLng.add(latLng1);
-            PolygonLatLng.add(latLng2);
-            polygon.setCoords(Arrays.asList(
-                    new LatLng(PolygonLatLng.get(0).latitude, PolygonLatLng.get(0).longitude),
-                    new LatLng(PolygonLatLng.get(1).latitude, PolygonLatLng.get(1).longitude),
-                    new LatLng(PolygonLatLng.get(2).latitude, PolygonLatLng.get(2).longitude),
-                    new LatLng(PolygonLatLng.get(3).latitude, PolygonLatLng.get(3).longitude)));
-
-            Log.d("Position5", "LatLng[0] : " + PolygonLatLng.get(0).latitude + " / " + PolygonLatLng.get(0).longitude);
-            Log.d("Position5", "LatLng[1] : " + PolygonLatLng.get(1).latitude + " / " + PolygonLatLng.get(1).longitude);
-            Log.d("Position5", "LatLng[2] : " + PolygonLatLng.get(2).latitude + " / " + PolygonLatLng.get(2).longitude);
-            Log.d("Position5", "LatLng[3] : " + PolygonLatLng.get(3).latitude + " / " + PolygonLatLng.get(3).longitude);
-
-            polygon.setColor(Color.BLUE);
-            polygon.setMap(mNaverMap);
-
-            // 내부 길 생성
-            MakeGapPath();
+        sprayPointList.clear();
+        for(LineLatLong lineLatLong : trimedGrid) {
+            sprayPointList.add(lineLatLong.getStart());
+            sprayPointList.add(lineLatLong.getEnd());
         }
     }
 
-    private void MakeGapPath() {
-        double heading = MyUtil.computeHeading(Auto_Marker.get(0).getPosition(), Auto_Marker.get(1).getPosition());
-
-        Auto_Polyline.add(new LatLng(Auto_Marker.get(0).getPosition().latitude, Auto_Marker.get(0).getPosition().longitude));
-        Auto_Polyline.add(new LatLng(Auto_Marker.get(1).getPosition().latitude, Auto_Marker.get(1).getPosition().longitude));
-
-        for (double sum = Gap_Distance; sum + Gap_Distance <= Auto_Distance + Gap_Distance; sum = sum + Gap_Distance) {
-            LatLng latLng1 = MyUtil.computeOffset(Auto_Marker.get(Auto_Marker_Count - 1).getPosition(), Gap_Distance, heading + 90);
-            LatLng latLng2 = MyUtil.computeOffset(Auto_Marker.get(Auto_Marker_Count - 2).getPosition(), Gap_Distance, heading + 90);
-
-            Auto_Marker.add(new Marker(latLng1));
-            Auto_Marker.add(new Marker(latLng2));
-            Auto_Marker_Count += 2;
-
-        //  Auto_Marker.get(Auto_Marker_Count-2).getPosition();
-
-            Auto_Polyline.add(new LatLng(Auto_Marker.get(Auto_Marker_Count - 2).getPosition().latitude, Auto_Marker.get(Auto_Marker_Count - 2).getPosition().longitude));
-            Auto_Polyline.add(new LatLng(Auto_Marker.get(Auto_Marker_Count - 1).getPosition().latitude, Auto_Marker.get(Auto_Marker_Count - 1).getPosition().longitude));
+    protected Polygon makePoly() {
+        Polygon poly = new Polygon();
+        List<LatLong> latLongList = new ArrayList<>();
+        for(LatLng latLng : polygonPoints) {
+            latLongList.add(MyUtil.latLngToLatLong(latLng));
         }
-
-        polylinePath.setColor(Color.WHITE);
-        polylinePath.setCoords(Auto_Polyline);
-        polylinePath.setMap(mNaverMap);
-
-        // WayPoint
-        MakeWayPoint();
-    }
-
-    /*
-    // ################################## 간격 감시 시 Dialog #####################################
-
-    private void DialogGap() {
-        final EditText edittext1 = new EditText(this);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("[간격 감시]");
-        builder.setMessage("1. 전체 길이를 입력하십시오.");
-        builder.setView(edittext1);
-        builder.setPositiveButton("입력",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        String editTextValue = edittext1.getText().toString();
-                        Auto_Distance = Integer.parseInt(editTextValue);
-                        DialogGap2();
-                    }
-                });
-        builder.setNegativeButton("취소",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
-        builder.show();
-    }
-
-    private void DialogGap2() {
-        final EditText edittext2 = new EditText(this);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("[간격 감시]");
-        builder.setMessage("2. 간격 길이를 입력하십시오");
-        builder.setView(edittext2);
-        builder.setPositiveButton("입력",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        String editTextValue = edittext2.getText().toString();
-                        Gap_Distance = Integer.parseInt(editTextValue);
-                    }
-                });
-        builder.setNegativeButton("취소",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
-        builder.show();
-    }
-    */
-
-    // ###################################### 면적 감시 ###########################################
-
-    private void MakeAreaPolygon(LatLng latLng) {
-        Button missionButton = (Button) findViewById(R.id.missionButton);
-        if ((missionButton.getText()).equals("다각형")) {
-            PolygonLatLng.add(latLng);
-
-            Marker marker = new Marker();
-            marker.setPosition(latLng);
-            Auto_Marker.add(marker);
-            Auto_Marker_Count++;
-
-            Auto_Marker.get(Auto_Marker_Count - 1).setHeight(100);
-            Auto_Marker.get(Auto_Marker_Count - 1).setWidth(100);
-
-            Auto_Marker.get(Auto_Marker_Count - 1).setAnchor(new PointF(0.5F, 0.9F));
-            Auto_Marker.get(Auto_Marker_Count - 1).setIcon(MarkerIcons.BLACK);
-            Auto_Marker.get(Auto_Marker_Count - 1).setIconTintColor(Color.GRAY);
-            Auto_Marker.get(Auto_Marker_Count - 1).setMap(mNaverMap);
-        }
-    }
-
-    private void ComputeLargeLength() {
-        // 가장 긴 변 계산
-        double max = 0.0;
-        double computeValue = 0.0;
-        int firstIndex = 0;
-        int secondIndex = 0;
-        for(int i=0; i<PolygonLatLng.size(); i++) {
-            if(i == PolygonLatLng.size() - 1) {
-                computeValue = PolygonLatLng.get(i).distanceTo(PolygonLatLng.get(0));
-                Log.d("Position12", "computeValue : [" + i + " , 0 ] : " + computeValue);
-                if(max < computeValue) {
-                    max = computeValue;
-                    firstIndex = i;
-                    secondIndex = 0;
-                }
-            } else {
-                computeValue = PolygonLatLng.get(i).distanceTo(PolygonLatLng.get(i+1));
-                Log.d("Position12", "computeValue : [" + i + " , " + (i+1) + "] : " + computeValue);
-                if(max < computeValue) {
-                    max = computeValue;
-                    firstIndex = i;
-                    secondIndex = i+1;
-                }
-            }
-            Log.d("Position12", "max : " + max);
-            Log.d("Position12", "firstIndex : " + firstIndex + " / secondIndex : " + secondIndex);
-        }
-
-        MakeAreaPath(firstIndex, secondIndex);
-    }
-
-    private void MakeAreaPath(int firstIndex, int secondIndex) {
-        double heading = MyUtil.computeHeading(PolygonLatLng.get(firstIndex), PolygonLatLng.get(secondIndex));
-
-        Log.d("Position11", "heading : " + heading);
-
-        Auto_Polyline.add(PolygonLatLng.get(firstIndex));
-        Auto_Polyline.add(PolygonLatLng.get(secondIndex));
-
-        LatLng latLng1 = MyUtil.computeOffset(PolygonLatLng.get(firstIndex), Auto_Distance, heading + 90);
-        LatLng latLng2 = MyUtil.computeOffset(PolygonLatLng.get(secondIndex), Auto_Distance, heading + 90);
+        poly.addPoints(latLongList);
+        return poly;
     }
 
     // Helper methods
@@ -1406,86 +1181,70 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onSuccess() {
                 alertUser("Photo taken.");
             }
-
             @Override
             public void onError(int executionError) {
                 alertUser("Error while trying to take the photo: " + executionError);
             }
-
             @Override
             public void onTimeout() {
                 alertUser("Timeout while trying to take the photo.");
             }
         });
     }
-
     private void toggleVideoRecording() {
         SoloCameraApi.getApi(drone).toggleVideoRecording(new AbstractCommandListener() {
             @Override
             public void onSuccess() {
                 alertUser("Video recording toggled.");
             }
-
             @Override
             public void onError(int executionError) {
                 alertUser("Error while trying to toggle video recording: " + executionError);
             }
-
             @Override
             public void onTimeout() {
                 alertUser("Timeout while trying to toggle video recording.");
             }
         });
     }
-
     private void startVideoStream(Surface videoSurface) {
         SoloCameraApi.getApi(drone).startVideoStream(videoSurface, videoTag, true, new AbstractCommandListener() {
             @Override
             public void onSuccess() {
                 alertUser("Successfully started the video stream. ");
-
                 if (stopVideoStream != null)
                     stopVideoStream.setEnabled(true);
-
                 if (startVideoStream != null)
                     startVideoStream.setEnabled(false);
-
                 if (startVideoStreamUsingObserver != null)
                     startVideoStreamUsingObserver.setEnabled(false);
-
                 if (stopVideoStreamUsingObserver != null)
                     stopVideoStreamUsingObserver.setEnabled(false);
             }
-
             @Override
             public void onError(int executionError) {
                 alertUser("Error while starting the video stream: " + executionError);
             }
-
             @Override
             public void onTimeout() {
                 alertUser("Timed out while attempting to start the video stream.");
             }
         });
     }
-
     DecoderListener decoderListener = new DecoderListener() {
         @Override
         public void onDecodingStarted() {
             alertUser("MediaCodecManager: video decoding started...");
         }
-
         @Override
         public void onDecodingError() {
             alertUser("MediaCodecManager: video decoding error...");
         }
-
         @Override
         public void onDecodingEnded() {
             alertUser("MediaCodecManager: video decoding ended...");
         }
     };
-
     private void startVideoStreamForObserver() {
         getApi(drone).startVideoStream(videoTag, new ExperimentalApi.IVideoStreamCallback() {
             @Override
@@ -1497,37 +1256,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                 });
             }
-
             @Override
             public void onVideoStreamConnected() {
                 runOnMainThread(new Runnable() {
                     @Override
                     public void run() {
                         alertUser("Successfully opened drone video connection.");
-
                         if (stopVideoStreamUsingObserver != null)
                             stopVideoStreamUsingObserver.setEnabled(true);
-
                         if (startVideoStreamUsingObserver != null)
                             startVideoStreamUsingObserver.setEnabled(false);
-
                         if (stopVideoStream != null)
                             stopVideoStream.setEnabled(false);
-
                         if (startVideoStream != null)
                             startVideoStream.setEnabled(false);
                     }
                 });
-
                 mediaCodecManager.stopDecoding(new DecoderListener() {
                     @Override
                     public void onDecodingStarted() {
                     }
-
                     @Override
                     public void onDecodingError() {
                     }
-
                     @Override
                     public void onDecodingEnded() {
                         try {
@@ -1541,7 +1292,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                 });
             }
-
             @Override
             public void onVideoStreamDisconnecting() {
                 runOnMainThread(new Runnable() {
@@ -1551,75 +1301,59 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                 });
             }
-
             @Override
             public void onVideoStreamDisconnected() {
                 runOnMainThread(new Runnable() {
                     @Override
                     public void run() {
                         alertUser("Successfully closed drone video connection.");
-
                         if (stopVideoStreamUsingObserver != null)
                             stopVideoStreamUsingObserver.setEnabled(false);
-
                         if (startVideoStreamUsingObserver != null)
                             startVideoStreamUsingObserver.setEnabled(true);
-
                         if (stopVideoStream != null)
                             stopVideoStream.setEnabled(false);
-
                         if (startVideoStream != null)
                             startVideoStream.setEnabled(true);
                     }
                 });
-
                 mediaCodecManager.stopDecoding(decoderListener);
             }
-
             @Override
             public void onError(int executionError) {
                 alertUser("Error while getting lock to vehicle video stream: " + executionError);
             }
-
             @Override
             public void onTimeout() {
                 alertUser("Timed out while attempting to get lock for vehicle video stream.");
             }
-
             @Override
             public void onAsyncVideoStreamPacketReceived(byte[] data, int dataSize) {
                 mediaCodecManager.onInputDataReceived(data, dataSize);
             }
         });
     }
-
     private void stopVideoStream() {
         SoloCameraApi.getApi(drone).stopVideoStream(videoTag, new AbstractCommandListener() {
             @Override
             public void onSuccess() {
                 if (stopVideoStream != null)
                     stopVideoStream.setEnabled(false);
-
                 if (startVideoStream != null)
                     startVideoStream.setEnabled(true);
-
                 if (stopVideoStreamUsingObserver != null)
                     stopVideoStreamUsingObserver.setEnabled(false);
-
                 if (startVideoStreamUsingObserver != null)
                     startVideoStreamUsingObserver.setEnabled(true);
             }
-
             @Override
             public void onError(int executionError) {
             }
-
             @Override
             public void onTimeout() {
             }
         });
     }
-
     private void stopVideoStreamForObserver() {
         getApi(drone).stopVideoStream(videoTag);
     }
