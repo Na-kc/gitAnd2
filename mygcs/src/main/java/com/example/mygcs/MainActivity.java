@@ -79,6 +79,7 @@ import com.o3dr.services.android.lib.model.SimpleCommandListener;
 import org.droidplanner.services.android.impl.core.helpers.geoTools.LineLatLong;
 import org.droidplanner.services.android.impl.core.polygon.Polygon;
 import org.droidplanner.services.android.impl.core.survey.grid.CircumscribedGrid;
+import org.droidplanner.services.android.impl.core.survey.grid.Grid;
 import org.droidplanner.services.android.impl.core.survey.grid.Trimmer;
 
 import java.io.IOException;
@@ -95,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FusedLocationSource locationSource;
     private NaverMap mNaverMap;
     private int DEFAULT_ZOOM_LEVEL = 17;
-    LatLng DEFAULT_LATLNG = new LatLng(35.9436,126.6842);
+    private LatLng DEFAULT_LATLNG = new LatLng(35.9436,126.6842);
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -118,30 +119,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Spinner modeSelector;
     Handler mainHandler;
-
     LocationOverlay locationOverlay;
+    PathOverlay pathOverlay;
 
-    ArrayList<String> recycler_list = new ArrayList<>(); // 리사이클러뷰
-    ArrayList<LatLng> coords = new ArrayList<>();
-    PolylineOverlay polyleadline = new PolylineOverlay();
+    private ArrayList<String> recycler_list = new ArrayList<>();        // 리사이클러뷰
+    private ArrayList<LatLng> coords = new ArrayList<>();               // Drone 기체 좌표 list
+    private PolylineOverlay polyleadline = new PolylineOverlay();       // Drone Head 선
 
-    Marker marker = new Marker();
-    Marker marker_goal = new Marker(); // Guided 모드 마커
-    Marker polygonMarker;
-    public ArrayList<LatLong> polygonPointList = new ArrayList<>();
-    public ArrayList<LatLong> sprayPointList = new ArrayList<>();
-    private ArrayList<LatLng> polygonPoints = new ArrayList<>();
+    //Marker marker = new Marker();
+    private Marker marker_goal = new Marker();                          // Guided 모드 마커
+    private Marker polygonMarker;
+    private ArrayList<LatLong> sprayPointList = new ArrayList<>();      // 중간 좌표 list
+    private ArrayList<LatLng> polygonPoints = new ArrayList<>();        // 다각형마커 좌표 list
+    private ArrayList<Marker> polygonMarkers = new ArrayList<>();       // 다각형마커 list
+    private PolylineOverlay polyline = new PolylineOverlay();           // 마커 지나간 길
+    private PolygonOverlay polygon = new PolygonOverlay();              // 다각형 생성
 
-    PolylineOverlay polyline = new PolylineOverlay();           // 마커 지나간 길
-    PolygonOverlay polygon = new PolygonOverlay();              // 간격 감시 시 뒤 사각형 (하늘)
-    PolylineOverlay polylinePath = new PolylineOverlay();       // 간격 감시 시 Path (하양)
-
-    private ArrayList<Marker> polygonMarkers = new ArrayList<>();
-
-    private int Auto_Distance = 50;
-    private double Gap_Distance = 5.5;
-    private double takeoffAltitude = 1.0;
-    private LatLong point;
+    private int Auto_Distance = 50;                                     // AB 미션 비행거리
+    private double Gap_Distance = 5.5;                                  // 비행폭
+    private double takeoffAltitude = 1.0;                               // 이륙 고도
+    private LatLong point;                                              // 좌표 포인트
     protected double mRecentAltitude = 0;
 
     @Override
@@ -312,17 +309,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         naverMap.setOnMapClickListener((point, coord) ->{
             Button missionBtn = findViewById(R.id.missionButton);
-            if(missionBtn.getText().equals("다각형")) {
+            if(missionBtn.getText().equals("AB")) {
                 polygonMarker = new Marker(new LatLng(coord.latitude, coord.longitude));
                 polygonMarkers.add(polygonMarker);
                 polygonPoints.add(new LatLng(coord.latitude, coord.longitude));
-                polygonMarker.setMap(naverMap);
-            }
+                polygonMarker.setMap(mNaverMap);
 
-            if(polygonMarkers.size() > 2){
-                polygonPoints = MyUtil.sortLatLngArray(polygonPoints);
-                polygon.setCoords(polygonPoints);
-                polygon.setMap(naverMap);
+                if(polygonMarkers.size() == 2) {
+                    double heading = MyUtil.computeHeading(polygonMarkers.get(0).getPosition(), polygonMarkers.get(1).getPosition());
+
+                    LatLng latLng1 = MyUtil.computeOffset(polygonMarkers.get(1).getPosition(), Auto_Distance, heading + 90);
+                    LatLng latLng2 = MyUtil.computeOffset(polygonMarkers.get(0).getPosition(), Auto_Distance, heading + 90);
+
+                    polygonPoints.add(latLng1);
+                    polygonPoints.add(latLng2);
+                    polygon.setCoords(Arrays.asList(
+                            new LatLng(polygonPoints.get(0).latitude, polygonPoints.get(0).longitude),
+                            new LatLng(polygonPoints.get(1).latitude, polygonPoints.get(1).longitude),
+                            new LatLng(polygonPoints.get(2).latitude, polygonPoints.get(2).longitude),
+                            new LatLng(polygonPoints.get(3).latitude, polygonPoints.get(3).longitude)));
+                    polygon.setMap(naverMap);
+                }
+            }
+            else if(missionBtn.getText().equals("다각형")) {
+                polygonMarker = new Marker(new LatLng(coord.latitude, coord.longitude));
+                polygonMarkers.add(polygonMarker);
+                polygonPoints.add(new LatLng(coord.latitude, coord.longitude));
+                polygonMarker.setMap(mNaverMap);
+
+                if(polygonMarkers.size() > 2) {
+                    polygonPoints = MyUtil.sortLatLngArray(polygonPoints);
+                    polygon.setCoords(polygonPoints);
+                    polygon.setMap(naverMap);
+                }
             }
         });
 
@@ -355,20 +374,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(vehicleMode.equals(VehicleMode.COPTER_GUIDED)){
                     VehicleApi.getApi(drone).setVehicleMode(VehicleMode.COPTER_GUIDED,
                             new AbstractCommandListener() {
-                                @Override
 
+                                @Override
                                 public void onSuccess() {
                                     ControlApi.getApi(drone).goTo(point, true, null);
                                 }
 
                                 @Override
+                                public void onError(int i) { }
 
-                                public void onError(int i) {
-
-                                }
                                 @Override
-                                public void onTimeout() {
-                                }
+                                public void onTimeout() { }
                             });
                 }
                 else {
@@ -376,9 +392,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     intent.putExtra("data", "확인하시면 가이드모드로 전환 후 기체가 이동됩니다.");
                     startActivityForResult(intent, 3);
                 }
-
             }
-
         });
 
         initMap();
@@ -389,7 +403,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onStart();
         this.controlTower.connect(this);
         updateVehicleModesForType(this.droneType);
-
     }
 
     @Override
@@ -603,16 +616,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             minusButton.setVisibility(View.INVISIBLE);
         }
     }
-    public void onBtnCreateTap(View view) throws Exception {
-        missionAtoB();
-        PathOverlay pathOverlay = new PathOverlay();
-        ArrayList<LatLng> missionlatlng = new ArrayList<LatLng>();
-        for(LatLong latlongs : sprayPointList){
-            missionlatlng.add(MyUtil.latLongToLatLng(latlongs));
-        }
-        pathOverlay.setCoords(missionlatlng);
-        pathOverlay.setMap(mNaverMap);
-    }
 
     public void onMissionTap(View view) {
         Button ABButton = (Button) findViewById(R.id.ABbutton);
@@ -624,13 +627,48 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View view) {
                 Button missionButton = (Button) findViewById(R.id.missionButton);
                 missionButton.setText("AB");
+                try
+                {
+                    if(polygon.getMap()!=null){
+                        missionAtoB();
+                        pathOverlay = new PathOverlay();
+                        ArrayList<LatLng> missionlatlng = new ArrayList<LatLng>();
+                        for(LatLong latlongs : sprayPointList){
+                            missionlatlng.add(MyUtil.latLongToLatLng(latlongs));
+                        }
+                        pathOverlay.setCoords(missionlatlng);
+                        pathOverlay.setMap(mNaverMap);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.d("myCheck", "예외처리 : " + e.getMessage());
+                }
             }
         });
+
         polygonButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Button missionButton = (Button) findViewById(R.id.missionButton);
                 missionButton.setText("다각형");
+                try
+                {
+                    if(polygon.getMap()!=null){
+                        missionAtoB();
+                        pathOverlay = new PathOverlay();
+                        ArrayList<LatLng> missionlatlng = new ArrayList<LatLng>();
+                        for(LatLong latlongs : sprayPointList){
+                            missionlatlng.add(MyUtil.latLongToLatLng(latlongs));
+                        }
+                        pathOverlay.setCoords(missionlatlng);
+                        pathOverlay.setMap(mNaverMap);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.d("myCheck", "예외처리 : " + e.getMessage());
+                }
             }
         });
         cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -757,20 +795,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onClearTap(View view) {
-        // 폴리라인 / 폴리곤 지우기
+        // 폴리라인 / 폴리곤
         polyline.setMap(null);
         polygon.setMap(null);
-        polylinePath.setMap(null);
-        marker.setMap(null);
-        polygonMarker.setMap(null);
+        if(pathOverlay != null)
+            pathOverlay.setMap(null);
 
-        // marker_goal 지우기
+        // Marker
+        for(int i = 0; i<polygonMarkers.size(); i++){
+            polygonMarkers.get(i).setMap(null);
+        }
         marker_goal.setMap(null);
 
-        // 리스트 값 지우기
+        // 리스트 값
         coords.clear();
         polygonPoints.clear();
-        polygonPointList.clear();
         polygonMarkers.clear();
     }
 
@@ -944,9 +983,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         polyline.setColor(Color.WHITE);
         polyline.setMap(mNaverMap);
 
-        if(CheckGoal(drone,currentLatlngLocation)){
+        Gps gps = this.drone.getAttribute(AttributeType.GPS);
+        if((marker_goal.getMap()!=null) && (CheckGoal(this.drone, new LatLng(gps.getPosition().getLatitude(), gps.getPosition().getLongitude())))){
             changeModeLoiter();
-            marker.setMap(null);
+            marker_goal.setMap(null);
         }
     }
 
@@ -1095,6 +1135,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
+
     public void initBtn(){
         // ################################## 버튼 초기화 #############################################
 
@@ -1150,9 +1191,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void makeMarker(@NonNull NaverMap naverMap, @NonNull LatLng latLng){
-        Marker marker = new Marker();
-        marker.setPosition(latLng);
-        marker.setMap(naverMap);
+
     }
 
     protected void leadline() {

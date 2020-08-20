@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
+import static com.naver.maps.geometry.MathUtils.wrap;
 import static com.o3dr.services.android.lib.util.MathUtils.addDistance;
 import static com.o3dr.services.android.lib.util.MathUtils.getDistance2D;
 
@@ -103,5 +104,29 @@ public class MyUtil {
         double x = (((first.longitude*second.latitude - first.latitude*second.longitude)*(third.longitude - fourth.longitude) - (first.longitude - second.longitude)*(third.longitude*fourth.latitude-third.latitude*fourth.longitude))/((first.longitude - second.longitude)*(third.latitude - fourth.latitude) - (first.latitude - second.latitude)*(third.longitude - fourth.longitude)));
         double y = (((first.longitude*second.latitude - first.latitude*second.longitude)*(third.latitude - fourth.latitude) - (first.latitude - second.latitude)*(third.longitude*fourth.latitude-third.latitude*fourth.longitude))/((first.longitude - second.longitude)*(third.latitude - fourth.latitude) - (first.latitude - second.latitude)*(third.longitude - fourth.longitude)));
         return new LatLng(y, x);
+    }
+
+    public static double computeHeading(LatLng from, LatLng to) {
+        double fromLat = Math.toRadians(from.latitude);
+        double fromLng = Math.toRadians(from.longitude);
+        double toLat = Math.toRadians(to.latitude);
+        double toLng = Math.toRadians(to.longitude);
+        double dLng = toLng - fromLng;
+        double heading = Math.atan2(Math.sin(dLng) * Math.cos(toLat), Math.cos(fromLat) * Math.sin(toLat) - Math.sin(fromLat) * Math.cos(toLat) * Math.cos(dLng));
+        return wrap(Math.toDegrees(heading), -180.0D, 180.0D);
+    }
+
+    public static LatLng computeOffset(LatLng from, double distance, double heading) {
+        distance /= 6371009.0D;
+        heading = Math.toRadians(heading);
+        double fromLat = Math.toRadians(from.latitude);
+        double fromLng = Math.toRadians(from.longitude);
+        double cosDistance = Math.cos(distance);
+        double sinDistance = Math.sin(distance);
+        double sinFromLat = Math.sin(fromLat);
+        double cosFromLat = Math.cos(fromLat);
+        double sinLat = cosDistance * sinFromLat + sinDistance * cosFromLat * Math.cos(heading);
+        double dLng = Math.atan2(sinDistance * cosFromLat * Math.sin(heading), cosDistance - sinFromLat * sinLat);
+        return new LatLng(Math.toDegrees(Math.asin(sinLat)), Math.toDegrees(fromLng + dLng));
     }
 }
