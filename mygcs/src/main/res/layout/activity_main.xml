@@ -34,27 +34,17 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1.0" />
 
-    <Button
-        android:id="@+id/mapButton"
-        android:layout_width="wrap_content"
-        android:layout_height="45dp"
-        android:onClick="onMapTap"
-        android:text="맵 잠금"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/spinner"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
 
     <Button
-        android:id="@+id/moveButton"
-        android:layout_width="wrap_content"
+        android:id="@+id/unlockButton"
+        android:layout_width="45dp"
         android:layout_height="45dp"
-        android:onClick="onBtnConnectTap"
-        android:text="맵 이동"
-        app:layout_constraintBottom_toTopOf="@+id/lockButton"
-        app:layout_constraintStart_toStartOf="@+id/lockButton" />
+        android:background="@drawable/unlock"
+        android:onClick="onUnlockTap"
+        app:layout_constraintBottom_toBottomOf="@+id/lockButton"
+        app:layout_constraintEnd_toStartOf="@+id/spinner"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/btnARM" />
 
     <Spinner
         android:id="@+id/spinner"
@@ -73,12 +63,14 @@
 
     <Button
         android:id="@+id/lockButton"
-        android:layout_width="wrap_content"
-        android:layout_height="0dp"
-        android:onClick="onBtnConnectTap"
-        android:text="맵 잠금"
-        app:layout_constraintBottom_toTopOf="@+id/mapButton"
-        app:layout_constraintStart_toStartOf="@+id/mapButton" />
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:background="@drawable/lock"
+        android:onClick="onlockTap"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/spinner"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/btnARM" />
 
     <Button
         android:id="@+id/btnConnect"
@@ -401,6 +393,44 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/rightButton"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:background="@drawable/right"
+        android:onClick="onRightTap"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/unlockButton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/btnARM"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/leftButton"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:background="@drawable/left"
+        android:onClick="onLeftTap"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/rightButton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/btnARM"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/missionAtoB"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="A 지점 설정"
+        android:onClick="onMissionAtoBtap"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/map"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1.0" />
